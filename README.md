@@ -16,9 +16,10 @@
 
 ## Kelompok A01
 
-Nama | NRP
-Jonathan Zelig Sutopo | 5027241047
-Aslam Ahmad Usman | 5027241074
+| No  | Nama                   | NRP        |
+| --- | ---------------------- | ---------- |
+| 1   | Jonathan Zelig Sutopo  | 5027241047 |
+| 2   | Aslam Ahmad Usman      | 5027241074 |
 
 ## Deskripsi Soal
 
