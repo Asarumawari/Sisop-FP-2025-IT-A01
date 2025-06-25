@@ -16,16 +16,14 @@
 
 ## Kelompok A01
 
-| No  | Nama                   | NRP        |
-| --- | ---------------------- | ---------- |
-| 1   | Jonathan Zelig Sutopo  | 5027241047 |
-| 2   | Aslam Ahmad Usman      | 5027241074 |
+| Nama                   | NRP        |
+| ---------------------- | ---------- |
+| Jonathan Zelig Sutopo  | 5027241047 |
+| Aslam Ahmad Usman      | 5027241074 |
 
 ## Deskripsi Soal
 
-> Insert testcase... (contoh dibawah) // hapus line ini
-
-Memahami race condition pada operasi check-then-act. Program membuat 2 thread; tiap thread mencoba mengambil satu-satunya sumber daya yang tersedia dari variabel global stok (nilai awal 1). Jika tanpa mutex, kedua thread bisa lolos pengecekan dan sama-sama mengambil sumber daya, menghasilkan nilai akhir stok menjadi -1.
+Buat program dimana dapat membuat fork yang memiliki loop untuk melakukan log dengan data PID, PPID, dan timestamp human-readable, untuk mendemonstrasikan apa yang terjadi ketika parent exit tidak terduga.
 
 ### Catatan
 
