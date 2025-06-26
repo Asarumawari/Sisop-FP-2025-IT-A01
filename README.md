@@ -27,12 +27,18 @@ Buat program dimana dapat membuat fork yang memiliki loop untuk melakukan log de
 
 ### Catatan
 
-> Insert catatan dari pengerjaan kalian... (contoh dibawah) // hapus line ini
-
 Struktur repository:
 ```
-.
-..
+Sisop-FP-2025-IT-A01-main
+├── README.md
+├── include
+│   ├── process_roles.h
+│   └── utils.h
+├── makefile
+└── src
+    ├── orphan.c
+    ├── process_roles.c
+    └── utils.c
 ```
 
 ## Pengerjaan
