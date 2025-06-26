@@ -110,6 +110,82 @@ static void controller_shutdown_handler(int signum) {
     cleanup_directory("output"); 
 
     write(STDERR_FILENO, "[CONTROLLER] Shutdown complete\n", 31);
-    _exit(EXIT_SUCCESS); 
+    _exit(EXIT_SUCCESS); // using _exit for signal safety
 }
 
+/**
+ * @brief recursively deleting a directory and its contents
+ * @param path the path to the directory to be cleaned up
+ */
+int cleanup_directory(const char *path) {
+    DIR *dir = opendir(path);
+    if (!dir) {
+        perror("Failed to open directory for cleanup");
+        return -1;
+    }
+
+    size_t path_len = strlen(path);
+    int return_val = -1;
+
+    if (dir) {
+        struct dirent *entry;
+        return_val = 0; 
+        while (!return_val && (entry = readdir(dir))) {
+            int return_val2 = -1;
+            char *buf;
+            size_t len; 
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+                continue; // skip current and parent directory entries
+            }
+
+            len = path_len + strlen(entry->d_name) + 2; // +2 for '/' and '\0'
+            buf = malloc(len);
+
+            if (buf){
+                struct stat statbuf;
+                snprintf(buf, len, "%s/%s", path, entry->d_name);
+                if (!stat(buf, &statbuf)) {
+                    if (S_ISDIR(statbuf.st_mode)) {
+                        // recursively clean up subdirectory
+                        return_val2 = cleanup_directory(buf);
+                    } else {
+                        // remove file
+                        return_val2 = unlink(buf);
+                    }
+                } else {
+                    perror("Failed to stat file during cleanup");
+                }
+                free(buf);
+            }
+            return_val = return_val2;
+        }
+        closedir(dir);
+    }
+    if (!return_val) return_val = rmdir(path); // remove the directory itself
+    return return_val;
+}
+
+/**
+ * @brief encrypt a file using a simple XOR cipher
+ * @param file_path the path to the file to be encrypted
+ */
+void xor_cipher_file(const char *file_path){
+    FILE *file = fopen(file_path, "r+b");
+    if (!file) {
+        perror("Failed to open file for cipher");
+        return;
+    }
+
+    char key = 'm'; 
+    int character; 
+    long pos = 0; 
+
+    fseek(file, 0, SEEK_SET);
+    while ((character = fgetc(file)) != EOF) {
+        fseek(file, pos, SEEK_SET); 
+        fputc(character ^ key, file); // XOR Cipher
+        fseek(file, pos + 1, SEEK_SET); 
+        pos++;
+    }
+    fclose(file);
+}
