@@ -47,15 +47,29 @@ Struktur repository:
 
 ...
 
-> Insert poin soal...
+mendemonstrasikan apa yang terjadi ketika parent exit tidak terduga.
 
 **Teori**
 
-...
+Dalam sistem operasi Unix atau Linux, saat proses induk (parent) keluar sebelum anaknya (child), maka child process akan berubah  menjadi orphan process. Orphan kemudian akan di-reparent oleh proses init atau systemd dengan PID 1.
+
+Berdasarkan paper "Automatically Detecting Missing Cleanup for Ungraceful Exits" (Jia et al., 2019), proses yang keluar tanpa membersihkan child-nya disebut `ungraceful exit`. Hal ini menyebabkan orphan process tetap hidup dan bisa menimbulkan resource leak atau uncontrolled behavior jika child tidak diawasi lagi.
+Mekanisme seperti `wait()` juga biasanya digunakan untuk menangani child secara benar. Namun jika dilewati, child tetap berjalan dan dapat terdeteksi sebagai orphan.
+
 
 **Solusi**
 
-...
+```
+if (child_pid > 0) {
+    log_message("[PARENT][PID: %d]: Exiting in 2 seconds, orphaning (%d) child.\n", getpid(), child_pid);
+    sleep(2); // sleep for 2 seconds to allow child to log its PPID
+    log_message("[PARENT][PID: %d]: Exiting now.\n", getpid());
+}
+```
+Bagian diatas pada `orphan.c` mensimulasikan bagaimana ungraceful exit terjadi dengan cara membiarkan parent process keluar 2 detik setelah proses `fork()` tanpa memanggil `wait()` atau `kill()`. Hal ini membuat child menjadi orphan dan tetap berjalan, mencatat PPID yang awalnya ID parent, lalu berubah menjadi 1 (systemd).
+
+Cara ini cocok untuk mendemonstrasikan teori orphan process dan efek dari exit yang tidak ditangani dengan baik. Dalam sistem nyata, pendekatan seperti SafeExit—yang disinggung paper diatas—bisa digunakan untuk mendeteksi dan memperbaiki perilaku tidak bersih ini dengan cara mengidentifikasi child yang tidak di-kill atau file PID yang tertinggal.
+
 
 **Video Menjalankan Program**
 ...
