@@ -25,7 +25,7 @@ int main() {
     // registering the shutdown handler
     setup_signal_handlers();
 
-    log_message(LOG_PROCESS, "[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.\n", getpid(), getppid(), getpgrp());
+    log_message(LOG_PROCESS, "[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.", getpid(), getppid(), getpgrp());
     printf("[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.\n", getpid(), getppid(), getpgrp());
 
     // --- Fork Specialized Child Processes ---
