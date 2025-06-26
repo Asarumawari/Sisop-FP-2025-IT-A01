@@ -25,8 +25,8 @@ int main() {
     // registering the shutdown handler
     setup_signal_handlers();
 
-    log_message(LOG_PROCESS, "[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.", getpid(), getppid(), getpgrp());
-    printf("[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.", getpid(), getppid(), getpgrp());
+    log_message(LOG_PROCESS, "[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.\n", getpid(), getppid(), getpgrp());
+    printf("[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.\n", getpid(), getppid(), getpgrp());
 
     // --- Fork Specialized Child Processes ---
     pid_t child_pid;
@@ -38,7 +38,7 @@ int main() {
     }
 
     // 2. Fork Zombie Demonstrator
-    else if (child_pid > 0) {
+    if (child_pid > 0) {
         if ((child_pid = fork()) == 0) {
             run_zombie_demonstrator();
             log_message(LOG_PROCESS, "[ZOMBIE DEMO][PID:%d][PPID:%d][PGID:%d]: Forked Zombie Demonstrator", getpid(), getppid(), getpgrp());
@@ -46,7 +46,7 @@ int main() {
     }
 
     // 3. Fork Worker Spawner
-    else if (child_pid > 0) {
+    if (child_pid > 0) {
         if ((child_pid = fork()) == 0) {
             run_worker_spawner();
             log_message(LOG_PROCESS, "[WORKER SPAWNER][PID:%d][PPID:%d][PGID:%d]: Forked Worker Spawner", getpid(), getppid(), getpgrp());
@@ -55,8 +55,7 @@ int main() {
 
     // controller process to wait for all children to finish and 'reap' them
     while(1){
-        sleep(15); // sleep to allow child processes to run
-        waitpid(-1, NULL, WNOHANG); // wait for any child process to finish
+        pause(); // wait for signals
     }
 
     return 0;
