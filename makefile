@@ -1,5 +1,5 @@
 # compiler
-CFLAGS = -Wall -Wextra -std=c99 -g
+CFLAGS = -Wall -Wextra -std=c99 -g -Iinclude
 
 # list of  files 
 SRCS = $(wildcard src/*.c)
