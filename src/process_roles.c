@@ -115,7 +115,7 @@ void run_file_worker() {
         struct tm *tm_info = localtime(&now);
 
         strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H:%M:%S", tm_info);
-        snprintf(original_path, "output/original/%s_process_%d.txt", timestamp, my_pid); // create a unique file name based on timestamp and PID
+        snprintf(original_path, sizeof(original_path), "output/original/%s_process_%d.txt", timestamp, my_pid); // create a unique file name based on timestamp and PID
 
         FILE *file = fopen(original_path, "w");
         if (file){
@@ -137,7 +137,7 @@ void run_file_worker() {
         FILE *dest_file = fopen(obfuscated_path, "w");
         if (source_file && dest_file) {
             char character;
-            while((character = fgetc(source_file)) != EOF) fputc(dest_file, character);
+            while((character = fgetc(source_file)) != EOF) fputc(character, dest_file);
             fclose(source_file); 
             fclose(dest_file);
         }
