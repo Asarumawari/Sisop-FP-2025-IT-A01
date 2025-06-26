@@ -37,15 +37,30 @@ Struktur repository:
 
 ## Pengerjaan
 
-> Insert poin soal...
+> mendemonstrasikan apa yang terjadi ketika parent exit tidak terduga.
 
 **Teori**
 
-...
+Dalam sistem operasi Unix atau Linux, ketika parent process keluar tanpa melakukan cleanup terhadap child-nya (seperti `wait()` atau `kill()`), maka child akan tetap berjalan dan menjadi orphan process. 
+Berdasarkan paper "Automatically Detecting Missing Cleanup for Ungraceful Exits" (Jia et al., 2019), paper ini menyebut kondisi tersebut sebagai ungraceful exit, yaitu saat parent process mati secara tidak terduga tanpa melakukan cleanup ke child process. Hal ini berpotensi menyebabkan orphan process dan resource leak.
 
 **Solusi**
 
-...
+Dalam kode `process_roles.c`, fungsi `run_orphan_demonstrator()` digunakan untuk mendemonstrasikan ungraceful exit. Di dalam fungsi ini, parent memanggil `fork()` untuk membuat child, lalu keluar atau `exit()` satu detik kemudian tanpa memanggil `wait()`:
+```
+void run_orphan_demonstrator() {
+    pid_t child_pid = fork(); 
+    if (child_pid == 0) {
+        // child log PPID
+        ...
+    } else if (child_pid > 0) {
+        sleep(1);
+        log_message(...); // parent keluar, orphan-kan child
+        exit(EXIT_SUCCESS);
+    }
+}
+```
+Karena parent keluar lebih dulu, child akan menjadi orphan dan di-reparent oleh proses init (PID 1). Dalam paper dijelaskan bahwa ungraceful exit dapat menyebabkan orphan process aktif tanpa pengawasan, berpotensi menimbulkan resource leak.
 
 > Membuat proses anak dengan fork() dan mencatat PID, PPID, serta timestamp.
 
@@ -75,7 +90,5 @@ Dengan cara ini maka program akan mendemonstrasikan bagaimana proses baru dibuat
 ## Daftar Pustaka
 
 Wang, K.C. (2018) Process Management in Unix/Linux. In: Systems Programming in Unix/Linux. Cham: Springer. Available at: https://doi.org/10.1007/978-3-319-92429-8_3 (Accessed: 26 June 2025).
-
-Ritchie, D.M. and Thompson, K. (1974) ‘The UNIX time-sharing system’, Communications of the ACM, 17(7), pp. 365–375. Available at: https://doi.org/10.1145/361011.361061 (Accessed: 26 June 2025).
 
 Jia, Z., Li, S., Yu, T., Liao, X. and Wang, J. (2019) ‘Automatically detecting missing cleanup for ungraceful exits’, Proceedings of the 2019 27th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE), pp. 751–762. Available at: https://doi.org/10.1145/3338906.3338938 (Accessed: 26 June 2025).
