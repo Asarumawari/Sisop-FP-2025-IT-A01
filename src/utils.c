@@ -80,7 +80,7 @@ void log_message(LogType type, const char* format, ...) {
     time(&raw_time);
     strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", localtime(&raw_time));
 
-    fprintf(log_file, "[%s][PID:%-6d]", time_buffer, getpid());
+    fprintf(log_file, "[%s][PID:%d]", time_buffer, getpid());
 
     va_list args;
     va_start(args, format);
