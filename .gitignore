@@ -1,4 +1,4 @@
-bin/*
-build/*
-log/*
-output/*
+bin/
+build/
+log/
+output/
