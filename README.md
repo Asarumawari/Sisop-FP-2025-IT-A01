@@ -47,7 +47,7 @@ Struktur repository:
 
 ...
 
-mendemonstrasikan apa yang terjadi ketika parent exit tidak terduga.
+> mendemonstrasikan apa yang terjadi ketika parent exit tidak terduga.
 
 **Teori**
 
@@ -76,6 +76,8 @@ Cara ini cocok untuk mendemonstrasikan teori orphan process dan efek dari exit y
 
 ## Daftar Pustaka
 
-Sitasi 1
-Sitasi 2
-Sitasi 3
+Wang, K.C. (2018) Process Management in Unix/Linux. In: Systems Programming in Unix/Linux. Cham: Springer. Available at: https://doi.org/10.1007/978-3-319-92429-8_3 (Accessed: 26 June 2025).
+
+Ritchie, D.M. and Thompson, K. (1974) ‘The UNIX time-sharing system’, Communications of the ACM, 17(7), pp. 365–375. Available at: https://doi.org/10.1145/361011.361061 (Accessed: 26 June 2025).
+
+Jia, Z., Li, S., Yu, T., Liao, X. and Wang, J. (2019) ‘Automatically detecting missing cleanup for ungraceful exits’, Proceedings of the 2019 27th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE), pp. 751–762. Available at: https://doi.org/10.1145/3338906.3338938 (Accessed: 26 June 2025).
