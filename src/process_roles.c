@@ -21,14 +21,16 @@
  */
 void run_orphan_demonstrator() {
     pid_t child_pid = fork(); 
-    // --- CHILD PROCESS ---
+    // --- GRANDCHILD PROCESS ---
     if (child_pid == 0) {
         int prev_ppid = getppid();
-        log_message(LOG_PROCESS, "[ORPHAN (to be)][PID:%d][PPID:%d][PGID:%d]: My parent (%d) is going to leave some milk", getpid(), getppid(), getppid(), getpgrp());
+        log_message(LOG_PROCESS, "[GRANDCHILD (to be)][PID:%d][PPID:%d][PGID:%d]: My parents (%d) are going to leave some milk.", getpid(), getppid(), getppid(), getpgrp());
+
+        // loop for a few seconds to observe the change in parent PID
         for (int i = 0; i < 5; i++){
             sleep(1); 
-            if (prev_ppid != getppid()){
-                log_message(LOG_PROCESS, "[ORPHAN (to be)][PID:%d][PPID:%d][PGID:%d]: %d seconds in and I'm still waiting for my parents to buy some milk.", getpid(), getppid(), getpgrp(), i + 1);
+            if (prev_ppid == getppid()){
+                log_message(LOG_PROCESS, "[GRANDCHILD (to be)][PID:%d][PPID:%d][PGID:%d]: %d seconds in and I'm still waiting for my parents to buy some milk.", getpid(), getppid(), getpgrp(), i + 1);
             } 
             else {
                 log_message(LOG_PROCESS, "[ORPHAN-ized][PID:%d][PPID:%d][PGID:%d]: %d seconds in and my parents has left to get some milk. Now, I'm with this parent:%d", getpid(), getppid(), getpgrp(), i + 1, getppid());
@@ -38,7 +40,7 @@ void run_orphan_demonstrator() {
         exit(EXIT_SUCCESS);
     }
 
-    // --- PARENT PROCESS ---
+    // --- CHILD PROCESS ---
     else if (child_pid > 0) {
         sleep(1);
         log_message(LOG_PROCESS, "[ORPHAN DEMO PARENT][PID:%d][PPID:%d][PGID:%d]: I'm going to leave some milk, leaving child %d alone", getpid(), getppid(), getpgrp(), child_pid);
