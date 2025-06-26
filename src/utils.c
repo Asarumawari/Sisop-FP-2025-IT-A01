@@ -9,12 +9,16 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <dirent.h> 
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
 
 #include "utils.h"
+
+// --- global shutdown flag ---
+volatile sig_atomic_t shutdown_requested = 0;
 
 // --- private function ---
 static void controller_shutdown_handler(int signum); 
@@ -42,12 +46,44 @@ void setup_directories() {
 }
 
 /**
- * @brief registers the signal handlers for shutdown and cleanup.
+ * @brief Registers the signal handlers for shutdown using the robust sigaction function.
  */
 void setup_signal_handlers() {
+    // Using sigaction is the modern, reliable way to handle signals.
+    struct sigaction sa;
+
+    // Point to our handler function.
+    sa.sa_handler = controller_shutdown_handler;
+    
+    // Initialize the signal mask. sa_mask specifies other signals to block
+    // while this handler is executing. We don't need to block any.
+    sigemptyset(&sa.sa_mask);
+
+    // Set flags. SA_RESTART would cause certain system calls to be automatically
+    // restarted if interrupted by this signal. We want the opposite, so we set
+    // flags to 0 to ensure that pause() gets interrupted correctly.
+    sa.sa_flags = 0;
+
+    // Register the handler for SIGINT (Ctrl+C).
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        perror("Error setting up SIGINT handler");
+        exit(EXIT_FAILURE);
+    }
+    
+    // Register the handler for SIGTERM (the termination signal we will send).
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        perror("Error setting up SIGTERM handler");
+        exit(EXIT_FAILURE);
+    }
+}
+
+/**
+ * @brief registers the signal handlers for shutdown and cleanup.
+ */
+/* void setup_signal_handlers() {
     signal(SIGINT, controller_shutdown_handler); // handle Ctrl+C
     signal(SIGTERM, controller_shutdown_handler); // handle termination signal
-}
+} */
 
 /**
  * @brief logs a message to the correct log file based on its type
@@ -92,10 +128,26 @@ void log_message(LogType type, const char* format, ...) {
 }
 
 /**
+ * @brief Signal handler that simply sets a flag.
+ * @param signum The signal number received.
+ * This is the SAFE way to handle signals. The handler does the bare minimum,
+ * and the main program loop will detect the flag change and handle the actual shutdown logic.
+ */
+static void controller_shutdown_handler(int signum) {
+    // The only action is to set our global flag.
+    shutdown_requested = 1;
+    // We add a write here just for immediate feedback in the terminal.
+    // A single write() call is generally safe in a handler.
+    char msg[64];
+    sprintf(msg, "\nShutdown signal (%d) received, please wait...\n", signum);
+    write(STDOUT_FILENO, msg, strlen(msg));
+}
+
+/**
  * @brief signal handler for shutdown and cleanup
  * @param signum the signal number
  */
-static void controller_shutdown_handler(int signum) {
+/* static void controller_shutdown_handler(int signum) {
     // using write() for signal safety instead of printf or fprintf
     char msg[128]; 
     sprintf(msg, "\n[CONTROLLER] Signal %d received. Shutting down gracefully...\n", signum);
@@ -106,12 +158,15 @@ static void controller_shutdown_handler(int signum) {
         write(STDERR_FILENO, "Failed to send SIGTERM to process group\n", 40);
     }
 
+    while (wait(NULL) > 0); // wait for all child processes to terminate
+
+    write(STDERR_FILENO, "[CONTROLLER] All child processes terminated.\n", 44);
     write(STDERR_FILENO, "[CONTROLLER] Cleaning up output files...\n", 40);
     cleanup_directory("output"); 
 
     write(STDERR_FILENO, "[CONTROLLER] Shutdown complete\n", 31);
     _exit(EXIT_SUCCESS); // using _exit for signal safety
-}
+} */
 
 /**
  * @brief recursively deleting a directory and its contents
