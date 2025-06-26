@@ -21,6 +21,9 @@ build/%.o: src/%.c
 # rule: cleaning up build artifacts
 clean: 
 	@rm -rf build bin
+	@rm -rf build
+	@rm -rf output
+	@rm -rf log
 
 run: $(TARGET)
 	@./$(TARGET)
