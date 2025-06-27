@@ -88,10 +88,11 @@ void setup_signal_handlers() {
 /**
  * @brief logs a message to the correct log file based on its type
  * @param type the type of log message (LogType enum)   
+ * @param tag string tag for identifying the the role of the process (e.g., "CONTROLLER", "WORKER")
  * @param format string format for the log message, using format like printf
  * @param ... variable arguments for the format string (ellipsis parameter)
  */
-void log_message(LogType type, const char* format, ...) {
+void log_message(LogType type, const char* tag, const char* format, ...) {
     const char *filename = NULL; 
     switch (type) {
         case LOG_PROCESS:       filename = "log/process.log"; break;
@@ -116,7 +117,7 @@ void log_message(LogType type, const char* format, ...) {
     time(&raw_time);
     strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", localtime(&raw_time));
 
-    fprintf(log_file, "[%s][PID:%d]", time_buffer, getpid());
+    fprintf(log_file, "[%s] [%-16s] [PID: %5d] [PPID: %5d] [PGID: %5d] :: ", time_buffer, tag, getpid(), getppid(), getpgrp());
 
     va_list args;
     va_start(args, format);

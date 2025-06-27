@@ -20,36 +20,40 @@
  * grandchild will be adopted by 'init' (PID 1) process.
  */
 void run_orphan_demonstrator() {
-    pid_t child_pid = fork(); 
+    log_message(LOG_PROCESS, "ORPHAN-PARENT", "Creating grandchild process.");
+    pid_t child_pid = fork();
+
     // --- GRANDCHILD PROCESS ---
     if (child_pid == 0) {
-        int prev_ppid = getppid();
-        log_message(LOG_PROCESS, "[GRANDCHILD (to be)][PID:%d][PPID:%d][PGID:%d]: My parents (%d) are going to leave some milk.", getpid(), getppid(), getppid(), getpgrp());
+        log_message(LOG_PROCESS, "GRANDCHILD", "I am a grandchild process. My parents are going to buy some milk.");
 
         // loop for a few seconds to observe the change in parent PID
         for (int i = 0; i < 5; i++){
-            sleep(1); 
-            if (prev_ppid == getppid()){
-                log_message(LOG_PROCESS, "[GRANDCHILD (to be)][PID:%d][PPID:%d][PGID:%d]: %d seconds in and I'm still waiting for my parents to buy some milk.", getpid(), getppid(), getpgrp(), i + 1);
+            sleep(3); 
+            pid_t prev_ppid = getppid(); // store previous parent PID
+            sleep(3);
+            pid_t current_ppid = getppid(); // get current parent PID
+            if (prev_ppid == current_ppid){
+                log_message(LOG_PROCESS, "GRANDCHILD", "I have been waiting for %d seconds for my parents to buy some milk.", i*5);
             } 
             else {
-                log_message(LOG_PROCESS, "[ORPHAN-ized][PID:%d][PPID:%d][PGID:%d]: %d seconds in and my parents has left to get some milk. Now, I'm with this parent:%d", getpid(), getppid(), getpgrp(), i + 1, getppid());
+                log_message(LOG_PROCESS, "ORPHAN", "My parents have left to buy for some milk");
             }
         }
-        log_message(LOG_PROCESS, "[ORPHAN][PID:%d][PPID:%d][PGID:%d]: Work is completed. Exiting.", getpid(), getppid(), getpgrp());
+        log_message(LOG_PROCESS, "ORPHAN", "I am now an orphan process. My new parent is PID %d (init).", getppid());
         exit(EXIT_SUCCESS);
     }
 
     // --- CHILD PROCESS ---
     else if (child_pid > 0) {
-        sleep(1);
-        log_message(LOG_PROCESS, "[ORPHAN DEMO PARENT][PID:%d][PPID:%d][PGID:%d]: I'm going to leave some milk, leaving child %d alone", getpid(), getppid(), getpgrp(), child_pid);
+        sleep(5);
+        log_message(LOG_PROCESS, "ORPHAN-PARENT", "I am the parent process and I will now leave to buy some milk.");
         exit(EXIT_SUCCESS);
     }
 
     // --- FORK FAILURE ---
     else {
-        log_message(LOG_PROCESS, "[ORPHAN DEMO] fork failed");
+        log_message(LOG_PROCESS, "ORPHAN-PARENT", "Fork failed to create grandchild process.");
         exit(EXIT_FAILURE);
     }
 }
@@ -59,25 +63,27 @@ void run_orphan_demonstrator() {
  * forks a child process that exits immediately. Parent doesn't call wait() on the child.
  */
 void run_zombie_demonstrator() {
+    log_message(LOG_PROCESS, "ZOMBIE-PARENT", "Creating child process that will become a zombie.");
     pid_t child_pid = fork(); 
+
     // --- CHILD PROCESS ---
     if (child_pid == 0) {
-        log_message(LOG_PROCESS, "[ZOMBIE (to be)][PID:%d][PPID:%d][PGID:%d]: I'm a zombie-to-be. Exiting immediately.", getpid(), getppid(), getpgrp());
+        log_message(LOG_PROCESS, "ZOMBIE-TO-BE", "I am a child process and I'm soon to be zombified.");
         exit(EXIT_SUCCESS);
     }
 
     // --- PARENT PROCESS ---
     else if (child_pid > 0) {
-        sleep(5); // wait for the child to exit and become a zombie
-        log_message(LOG_PROCESS, "[ZOMBIE DEMO PARENT][PID:%d][PPID:%d][PGID:%d]: I have created a zombie child with PID %d. I'm going to sleep without calling wait().", getpid(), getppid(), getpgrp(), child_pid);
-        sleep(20); // Give time to observe the zombie state
-        log_message(LOG_PROCESS, "[ZOMBIE DEMO PARENT][PID:%d][PPID:%d][PGID:%d]: Exiting now. I'll let the system clean up my mess (zombie child)", getpid(), getppid(), getpgrp());
+        sleep(10); // wait for the child to exit and become a zombie
+        log_message(LOG_PROCESS, "ZOMBIE-PARENT", "I am the parent process. My child (%d) should have exited by now and I will not call wait().");
+        sleep(30); // Give time to observe the zombie state
+        log_message(LOG_PROCESS, "ZOMBIE-PARENT", "I will now exit and some system will reap the zombie (%d) on their own.", child_pid);
         exit(EXIT_SUCCESS);
     }
 
     // --- FORK FAILURE ---
     else {
-        log_message(LOG_PROCESS, "[ZOMBIE DEMO] fork failed");
+        log_message(LOG_PROCESS, "ZOMBIE-PARENT", "Fork failed to create child process.");
         exit(EXIT_FAILURE);
     }
 }
@@ -87,8 +93,8 @@ void run_zombie_demonstrator() {
  * Each worker will run their own process of creating files, copying, and encrypting them.
  */
 void run_worker_spawner() {
-    log_message(LOG_PROCESS, "[WORKER SPAWNER][PID:%d][PPID:%d][PGID:%d]: spawning 3 file workers.", getpid(), getppid(), getpgrp());
-
+    log_message(LOG_PROCESS, "WORKER-SPAWNER", "Starting to spawn workers.");
+    
     for (int i = 0; i < 3; i++) {
         if (fork() == 0) {
                 run_file_worker();
@@ -108,7 +114,7 @@ void run_worker_spawner() {
 void run_file_worker() {
     srand(time(NULL) ^ getpid()); // seed random number generator with time and PID
     pid_t my_pid = getpid();
-    log_message(LOG_PROCESS, "[WORKER][PID:%d][PPID:%d][PGID:%d]: I'm a file worker. Starting my infinite loop.", my_pid, getppid(), getpgrp());
+    log_message(LOG_PROCESS, "WORKER", "Worker process started with PID %d.", my_pid);
 
     while (1) {
         char original_path[256], 
@@ -123,7 +129,7 @@ void run_file_worker() {
         if (file){
             fprintf(file, "%d.\n– Created by %d at %s.", rand(), my_pid, timestamp); // write a unique message to the file
             fclose(file);
-            log_message(LOG_FILE_MAKING, "[WORKER][PID:%d][PPID:%d][PGID:%d]: Created original file: %s", my_pid, getppid(), getpgrp(), original_path);
+            log_message(LOG_FILE_MAKING, "WORKER", "Created file: %s", original_path);
         }
 
         // make a subdirectory for obfuscated files
@@ -143,11 +149,11 @@ void run_file_worker() {
             fclose(source_file); 
             fclose(dest_file);
         }
-        log_message(LOG_OBFUSCATION, "[WORKER][PID:%d][PPID:%d][PGID:%d]: Copied %s to %s", my_pid, getppid(), getpgrp(), original_path, obfuscated_path);
+        log_message(LOG_FILE_MAKING, "WORKER", "Copied file from %s to %s", original_path, obfuscated_path);
 
         xor_cipher_file(obfuscated_path); 
-        log_message(LOG_OBFUSCATION, "[WORKER][PID:%d][PPID:%d][PGID:%d]: Encrypted: %s", my_pid, getppid(), getpgrp(), obfuscated_path);
+        log_message(LOG_OBFUSCATION, "WORKER", "Obfuscated file: %s", obfuscated_path);
 
-        sleep(rand() % 5 + 2); 
+        sleep(10); 
     }
 }

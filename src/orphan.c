@@ -19,7 +19,7 @@ int main() {
 
     // setting up system
     setup_directories(); 
-    log_message(LOG_PROCESS, "--- System Initialized ---");
+    log_message(LOG_PROCESS, "CONTROLLER", "System Initialized.");
 
     // making sure clean up can be done gracefully
     /* if (setpgid(0, 0) < 0) {
@@ -30,8 +30,8 @@ int main() {
     // registering the shutdown handler
     setup_signal_handlers();
 
-    log_message(LOG_PROCESS, "[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.", getpid(), getppid(), getpgrp());
-    printf("[CONTROLLER][PID:%d][PPID:%d][PGID:%d]: Press CTRL+C to terminate all process.\n", getpid(), getppid(), getpgrp());
+    log_message(LOG_PROCESS, "CONTROLLER", "Press CTRL+C to terminate all processes.");
+    printf("[CONTROLLER] [PID: %d] :: Press CTRL+C to terminate all processes.\n", getpid());
 
     // --- Fork Specialized Child Processes ---
     pid_t child_pid;
@@ -41,8 +41,6 @@ int main() {
         // reset signal handlers in child process to default
         signal(SIGINT, SIG_DFL);
         signal(SIGTERM, SIG_DFL);
-        
-        log_message(LOG_PROCESS, "[ORPHAN DEMO][PID:%d][PPID:%d][PGID:%d]: Forked Orphan Demonstrator", getpid(), getppid(), getpgrp());
         run_orphan_demonstrator();
     }
     
@@ -53,7 +51,6 @@ int main() {
         signal(SIGTERM, SIG_DFL);
         
         if ((child_pid = fork()) == 0) {
-            log_message(LOG_PROCESS, "[ZOMBIE DEMO][PID:%d][PPID:%d][PGID:%d]: Forked Zombie Demonstrator", getpid(), getppid(), getpgrp());
             run_zombie_demonstrator();
         }
     }
@@ -65,7 +62,6 @@ int main() {
             signal(SIGINT, SIG_DFL);
             signal(SIGTERM, SIG_DFL);
     
-            log_message(LOG_PROCESS, "[WORKER SPAWNER][PID:%d][PPID:%d][PGID:%d]: Forked Worker Spawner", getpid(), getppid(), getpgrp());
             run_worker_spawner();
         }
     }
@@ -77,21 +73,20 @@ int main() {
     
     // --- Shutdown Sequence ---
     // below is outside the signal handler to ensure it runs only once and after the signal is received
-    log_message(LOG_PROCESS, "[CONTROLLER] Shutdown initiated. Terminating all child processes...");
-    printf("[CONTROLLER] Terminating all child processes...\n");
-
+    log_message(LOG_PROCESS, "CONTROLLER", "Shutdown requested. Terminating all child processes.");
+    printf("[CONTROLLER] [PID: %d] :: Shutdown requested. Terminating all child processes.\n", getpid());
+    
     // Using kill with a negative PGID is the most explicit way to signal an entire process group.
     kill(0, SIGTERM);
 
     // Wait for all direct children to terminate. This "reaps" them.
     while (wait(NULL) > 0);
 
-    log_message(LOG_PROCESS, "[CONTROLLER] All children reaped. Cleaning up directories...");
-    printf("[CONTROLLER] Cleaning up directories...\n");
+    log_message(LOG_PROCESS, "CONTROLLER", "All child processes terminated (reaped). Cleaning up output files.");
+    printf("[CONTROLLER] [PID: %d] :: All child processes terminated (reaped). Cleaning up output files.\n", getpid());
     cleanup_directory("output");
 
-    log_message(LOG_PROCESS, "[CONTROLLER] Shutdown complete.");
-    printf("[CONTROLLER] Shutdown complete.\n");
-
+    log_message(LOG_PROCESS, "CONTROLLER", "Shutdown complete.");
+    printf("[CONTROLLER] [PID: %d] :: Shutdown complete.\n", getpid());
     return 0;
 }

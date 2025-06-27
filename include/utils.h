@@ -28,7 +28,7 @@ extern volatile sig_atomic_t shutdown_requested;
 // --- FUNCTION DECLARATIONS ---
 void setup_directories(); 
 void setup_signal_handlers(); 
-void log_message(LogType type, const char* format, ...);
+void log_message(LogType type, const char* tag, const char* format, ...);
 int cleanup_directory(const char *path); 
 void xor_cipher_file(const char *file_path);
 
