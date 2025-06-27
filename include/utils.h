@@ -21,6 +21,8 @@ extern volatile sig_atomic_t shutdown_requested;
 //  --- ENUM FOR STRUCTURED LOGGING ---
  typedef enum {
     LOG_PROCESS,        // for process lifecycle events (fork, exit, orphan, zombie)
+    LOG_ORPHAN,         // for file copying and encryption events
+    LOG_ZOMBIE,        // for file copying and encryption events
     LOG_FILE_MAKING,    // for original file creation events
     LOG_OBFUSCATION     // for file copying and encryption events
 } LogType;

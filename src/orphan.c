@@ -5,6 +5,7 @@
 #define _GNU_SOURCE 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -21,48 +22,91 @@ int main() {
     setup_directories(); 
     log_message(LOG_PROCESS, "CONTROLLER", "System Initialized.");
 
-    // making sure clean up can be done gracefully
-    /* if (setpgid(0, 0) < 0) {
-        perror("setpgid failed");
-        exit(EXIT_FAILURE);
-    } */
-
     // registering the shutdown handler
     setup_signal_handlers();
 
     log_message(LOG_PROCESS, "CONTROLLER", "Press CTRL+C to terminate all processes.");
     printf("[CONTROLLER] [PID: %d] :: Press CTRL+C to terminate all processes.\n", getpid());
 
-    // --- Fork Specialized Child Processes ---
-    pid_t child_pid;
+    //  --- ORPHAN / ZOMBIE PROCESS CREATION ---
+    int num_children = 0;
+    char mode[10] = {0};
+    int odd_even = -1;
 
-    // 1. Fork Orphan Demonstrator
-    if ((child_pid = fork()) == 0) {
-        // reset signal handlers in child process to default
-        signal(SIGINT, SIG_DFL);
-        signal(SIGTERM, SIG_DFL);
-        run_orphan_demonstrator();
-    }
-    
-    // 2. Fork Zombie Demonstrator
-    if (child_pid > 0) {
-        // reset signal handlers in child process to default
-        signal(SIGINT, SIG_DFL);
-        signal(SIGTERM, SIG_DFL);
-        
-        if ((child_pid = fork()) == 0) {
-            run_zombie_demonstrator();
+    // loop until positive number is entered
+    while (num_children <= 0) {
+        printf("How many child processes (must be > 0): ");
+        scanf("%d", &num_children);
+        if (num_children <= 0) {
+            printf("Invalid number of child processes. Please enter a positive integer.\n");
         }
     }
-    
-    // 3. Fork Worker Spawner
-    if (child_pid > 0) {
-        if ((child_pid = fork()) == 0) {
+
+    // loop until 'add' or 'even' is entered
+    while (odd_even == -1) {
+        printf("orphan shall be (odd/even): ");
+        scanf("%9s", mode);
+        if (strcmp(mode, "odd") == 0) {
+            odd_even = 1;
+        } else if (strcmp(mode, "even") == 0) {
+            odd_even = 0;
+        } else {
+            printf("Invalid input. Please enter 'odd' or 'even'.\n");
+        }
+    }
+
+    // loop until positive number is entered
+    int num_workers = 0;
+    while (num_workers <= 0) {
+        printf("How many worker processes to spawn (must be > 0): ");
+        scanf("%d", &num_workers);
+        if (num_workers <= 0) {
+            printf("Invalid number of worker processes. Please enter a positive integer.\n");
+        }
+    }
+
+    printf("---------------------------------------------------\n");
+
+    for (int i = 1; i <= num_children; i++) { 
+        pid_t demo_pid = fork();
+
+        if (demo_pid < 0) {
+            log_message(LOG_PROCESS, "CONTROLLER", "Failed to fork orphan/zombie child process %d.", i);
+            exit(EXIT_FAILURE);
+        }
+
+        else if (demo_pid == 0) {
+            // reset signal handlers in child process to default
+            signal(SIGINT, SIG_DFL);
+            signal(SIGTERM, SIG_DFL);
+            
+            int current_child_odd = (i % 2 != 0);
+            if ((odd_even && current_child_odd) || (!odd_even && !current_child_odd)) { // if true, orphan process
+                orphaner(i);
+            } else { // if false, zombie process
+                log_message(LOG_ZOMBIE, "ZOMBIE CHILD", "Order: %d; Becoming a zombie child.", i);
+                exit(EXIT_SUCCESS); // child exits immediately, becoming a zombie
+            }
+            exit(EXIT_FAILURE); // shouldn't be reached
+        }
+        log_message(LOG_PROCESS, "CONTROLLER", "Forked child #%d, with PID %d", i, demo_pid);
+        sleep(2); 
+    }
+
+    // --- WORKER ---
+    for (int i = 1; i <= num_workers; i++) {
+        pid_t worker_pid = fork();
+        if (worker_pid == 0) {
             // reset signal handlers in child process to default
             signal(SIGINT, SIG_DFL);
             signal(SIGTERM, SIG_DFL);
     
-            run_worker_spawner();
+            run_file_worker(i); // run the worker process
+            exit(EXIT_FAILURE); // shouldn't be reached 
+        } else if (worker_pid < 0) {
+            log_message(LOG_FILE_MAKING, "WORKER PARENT", "Failed to fork worker process %d.", i);
+            log_message(LOG_PROCESS, "CONTROLLER", "Failed to fork worker process %d.", i);
+            exit(EXIT_FAILURE);
         }
     }
 
