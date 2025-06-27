@@ -76,18 +76,33 @@ Berdasarkan paper “Process Management in Unix/Linux” (Wang., 2018) menyebutk
 
 **Solusi**
 
-Dalam kode orphan.c, proses utama akan memanggil fork() sebanyak tiga kali, salah satunya untuk menjalankan fungsi run_orphan_demonstrator(). Pada fungsi ini, terjadi fork() ulang untuk membuat child baru:
+Dalam file orphan.c, proses utama melakukan tiga kali fork() secara terpisah untuk menjalankan tiga peran proses yang berbeda:
 
 ```
-pid_t child_pid = fork();
-if (child_pid == 0) {
-    // child logic
-} else if (child_pid > 0) {
-    // parent logic
+// 1. Fork Orphan Demonstrator
+if ((child_pid = fork()) == 0) {
+    run_orphan_demonstrator();
+    ...
+}
+
+// 2. Fork Zombie Demonstrator
+if (child_pid > 0) {
+    if ((child_pid = fork()) == 0) {
+        run_zombie_demonstrator();
+        ...
+    }
+}
+
+// 3. Fork Worker Spawner
+if (child_pid > 0) {
+    if ((child_pid = fork()) == 0) {
+        run_worker_spawner();
+        ...
+    }
 }
 ```
 
-Dengan cara ini maka program akan mendemonstrasikan bagaimana proses baru dibuat dan berjalan sendiri.
+Setiap blok fork() hanya dijalankan oleh proses utama dengan memeriksa apakah child_pid > 0  untuk mencegah child dari fork sebelumnya melakukan fork ulang.
 
 
 **Video Menjalankan Program**
