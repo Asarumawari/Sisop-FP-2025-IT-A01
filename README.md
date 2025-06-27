@@ -52,21 +52,26 @@ Berdasarkan paper "Automatically Detecting Missing Cleanup for Ungraceful Exits"
 
 **Solusi**
 
-Dalam kode `process_roles.c`, fungsi `run_orphan_demonstrator()` digunakan untuk mendemonstrasikan ungraceful exit. Di dalam fungsi ini, parent memanggil `fork()` untuk membuat child, lalu keluar atau `exit()` satu detik kemudian tanpa memanggil `wait()`:
+`process_roles.c` mendemonstrasikan bagaimana ungraceful exit bekerja melalui fungsi `orphaner(int order)`, dimana fungsi ini membuat satu proses grandchild melalui `fork()`, lalu parent-nya langsung keluar tanpa `wait()`:
 ```
-void run_orphan_demonstrator() {
-    pid_t child_pid = fork(); 
-    if (child_pid == 0) {
-        // child log PPID
-        ...
-    } else if (child_pid > 0) {
-        sleep(1);
-        log_message(...); // parent keluar, orphan-kan child
+void orphaner(int order){
+   ...
+    pid_t grandchild_pid = fork(); 
+    if (grandchild_pid > 0) {
+        sleep(2);
+        log_message(...);
+        exit(EXIT_SUCCESS); // parent keluar → orphan terjadi
+    } else if (grandchild_pid == 0) {
+        while(getppid() == child_pid){
+            sleep(2);
+            log_message(...);
+        }
+        log_message(...); // proses telah orphan
         exit(EXIT_SUCCESS);
     }
 }
 ```
-Karena parent keluar lebih dulu, child akan menjadi orphan dan di-reparent oleh proses init (PID 1). Dalam paper dijelaskan bahwa ungraceful exit dapat menyebabkan orphan process aktif tanpa pengawasan, berpotensi menimbulkan resource leak.
+Dapat dilihat bagaimana parent yang keluar tanpa menunggu membuat child akan menjadi orphan, lalu di-reparent oleh proses init atau systemd (biasanya PID 1). Hal tersebut merupakan contoh dari ungraceful exit, dimana parent tidak melakukan proses cleanup atau pengawasan terhadap terhadap child.
 
 > Membuat proses anak dengan fork() dan mencatat PID, PPID, serta timestamp.
 
@@ -76,34 +81,53 @@ Berdasarkan paper “Process Management in Unix/Linux” (Wang., 2018) menyebutk
 
 **Solusi**
 
-Dalam file orphan.c, proses utama melakukan tiga kali fork() secara terpisah untuk menjalankan tiga peran proses yang berbeda:
-
+Dalam file `orphan.c`, proses utama (controller) melakukan beberapa kali forking berdasarkan input dari pengguna, lalu jumlah child untuk mendemonstrasikan orphan/zombie serta jumlah file worker dapat ditentukan secara dinamis saat runtime program.
 ```
-// 1. Fork Orphan Demonstrator
-if ((child_pid = fork()) == 0) {
-    run_orphan_demonstrator();
-    ...
-}
-
-// 2. Fork Zombie Demonstrator
-if (child_pid > 0) {
-    if ((child_pid = fork()) == 0) {
-        run_zombie_demonstrator();
+for (int i = 1; i <= num_children; i++) { 
+    pid_t demo_pid = fork();
+    if (demo_pid == 0) {
+        // reset signal handler
         ...
-    }
-}
-
-// 3. Fork Worker Spawner
-if (child_pid > 0) {
-    if ((child_pid = fork()) == 0) {
-        run_worker_spawner();
-        ...
+        // tentukan apakah proses ini akan jadi orphan atau zombie
+        if (...) {
+            orphaner(i);
+        } else {
+            exit(EXIT_SUCCESS); // menjadi zombie
+        }
     }
 }
 ```
+Dalam `orphan.c`, semua `fork()` hanya dilakukan oleh parent utama dan setiap child akan menjalankan perannya masing-masing secara terpisah.
 
-Setiap blok fork() hanya dijalankan oleh proses utama dengan memeriksa apakah child_pid > 0  untuk mencegah child dari fork sebelumnya melakukan fork ulang.
+> Mendemonstrasikan bagaimana proses zombie terbentuk ketika parent tidak memanggil `wait()` terhadap child yang sudah `exit()`.
 
+**Teori**
+
+Menurut paper “Process Management in Unix/Linux” (Wang., 2018), saat sebuah child process berhenti, maka kernel akan menyimpan status output-nya agar bisa dikumpulkan oleh parent. Jika parent tidak segera melakukan wait(), maka entry proses tersebut tidak dihapus dan proses itu disebut dengan `zombie`.
+
+**Solusi**
+
+Pada `orphan.c`, zombie process dibuat berdasarkan input pengguna. Jika urutan child tidak cocok dengan mode orphaning (odd/even), maka child akan langsung keluar dengan `exit()`, sementara controller tidak memanggil `wait()` secara langsung untuk child tersebut saat itu:
+```
+if ((odd_even && current_child_odd) || (!odd_even && !current_child_odd)) {
+    orphaner(i); // akan membuat orphan
+} else {
+    log_message(LOG_ZOMBIE, "ZOMBIE CHILD", "Order: %d; Becoming a zombie child.", i);
+    exit(EXIT_SUCCESS); // menjadi zombie
+}
+```
+
+Zombie child akan tetap muncul di process list (ps -ef) sebagai proses dengan status Z/zombie hingga parent (controller) melakukan wait():
+```
+// controller loop
+while(!shutdown_requested){
+    pause();
+}
+
+// saat shutdown
+while (wait(NULL) > 0);
+```
+Karena `wait()` baru dipanggil saat shutdown, maka selama program berjalan, zombie akan tetap ada di process table`. Dalam paper yang disebutkan, hal ini berhubungan dengan bagaimana zombie terbentuk akibat tidak adanya `wait()`.
 
 **Video Menjalankan Program**
 ...
